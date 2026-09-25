@@ -1,0 +1,43 @@
+name: Deploy static site to GitHub Pages
+
+# Installed by shea-os/guard/ci/name_codes.py. Publishes the repo as-is, but
+# only after the athlete-name check passes. A failure leaves the live site on
+# its last safe version. Requires Settings > Pages > Source = GitHub Actions.
+#
+# Hidden files (.gitignore and the like) are left out, as the old
+# branch-based publishing did. .git and .github are never uploaded.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Check for athlete names
+        run: python3 .github/name-guard/check.py
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: '.'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
